@@ -1,0 +1,257 @@
+
+Organizations:
+
+    - &OrdererOrg
+        Name: OrdererOrg
+        ID: OrdererMSP
+        MSPDir: crypto-config/ordererOrganizations/results.com/msp
+        Policies:
+            Readers:
+                Type: Signature
+                Rule: "OR('OrdererMSP.member')"
+            Writers:
+                Type: Signature
+                Rule: "OR('OrdererMSP.member')"
+            Admins:
+                Type: Signature
+                Rule: "OR('OrdererMSP.admin')"
+
+    - &Univ1
+   
+        Name: Univ1MSP
+        ID: Univ1MSP
+        MSPDir: crypto-config/peerOrganizations/univ1.results.com/msp
+        Policies:
+            Readers:
+                Type: Signature
+                Rule: "OR('Univ1MSP.admin', 'Univ1MSP.peer', 'Univ1MSP.client')"
+            Writers:
+                Type: Signature
+                Rule: "OR('Univ1MSP.admin', 'Univ1MSP.client')"
+            Admins:
+                Type: Signature
+                Rule: "OR('Univ1MSP.admin')"
+        AnchorPeers:
+            - Host: college0.univ1.results.com
+              Port: 7051
+
+    - &Univ2
+        Name: Univ2MSP
+        ID: Univ2MSP
+        MSPDir: crypto-config/peerOrganizations/univ2.results.com/msp
+        Policies:
+            Readers:
+                Type: Signature
+                Rule: "OR('Univ2MSP.admin', 'Univ2MSP.peer', 'Univ2MSP.client')"
+            Writers:
+                Type: Signature
+                Rule: "OR('Univ2MSP.admin', 'Univ2MSP.client')"
+            Admins:
+                Type: Signature
+                Rule: "OR('Univ2MSP.admin')"
+        AnchorPeers:
+            - Host: college0.univ2.results.com
+              Port: 9051
+
+##########################################################################################################
+
+
+
+Capabilities:
+
+    Channel: &ChannelCapabilities
+        V1_4_3: true
+        V1_3: false
+        V1_1: false
+
+
+    Orderer: &OrdererCapabilities
+        V1_4_2: true
+        V1_1: false
+
+
+    Application: &ApplicationCapabilities
+
+        V1_4_2: true
+        V1_3: false
+        V1_2: false
+        V1_1: false
+
+
+##########################################################################################################
+
+
+Application: &ApplicationDefaults
+
+
+    Organizations:
+    Policies:
+        Readers:
+            Type: ImplicitMeta
+            Rule: "ANY Readers"
+        Writers:
+            Type: ImplicitMeta
+            Rule: "ANY Writers"
+        Admins:
+            Type: ImplicitMeta
+            Rule: "MAJORITY Admins"
+
+    Capabilities:
+        <<: *ApplicationCapabilities
+
+##########################################################################################################
+
+
+Orderer: &OrdererDefaults
+
+    OrdererType: solo
+    Addresses:
+        - orderer.results.com:7050
+    BatchTimeout: 2s
+    BatchSize:
+        MaxMessageCount: 10
+        AbsoluteMaxBytes: 99 MB
+        PreferredMaxBytes: 512 KB
+
+    EtcdRaft:
+        Consenters:
+            - Host: orderer.results.com
+              Port: 7050
+              ClientTLSCert: crypto-config/ordererOrganizations/results.com/orderers/orderer.results.com/tls/server.crt
+              ServerTLSCert: crypto-config/ordererOrganizations/results.com/orderers/orderer.results.com/tls/server.crt
+            - Host: orderer2.results.com
+              Port: 7050
+              ClientTLSCert: crypto-config/ordererOrganizations/results.com/orderers/orderer2.results.com/tls/server.crt
+              ServerTLSCert: crypto-config/ordererOrganizations/results.com/orderers/orderer2.results.com/tls/server.crt
+            - Host: orderer3.results.com
+              Port: 7050
+              ClientTLSCert: crypto-config/ordererOrganizations/results.com/orderers/orderer3.results.com/tls/server.crt
+              ServerTLSCert: crypto-config/ordererOrganizations/results.com/orderers/orderer3.results.com/tls/server.crt
+            - Host: orderer4.results.com
+              Port: 7050
+              ClientTLSCert: crypto-config/ordererOrganizations/results.com/orderers/orderer4.results.com/tls/server.crt
+              ServerTLSCert: crypto-config/ordererOrganizations/results.com/orderers/orderer4.results.com/tls/server.crt
+            - Host: orderer5.results.com
+              Port: 7050
+              ClientTLSCert: crypto-config/ordererOrganizations/results.com/orderers/orderer5.results.com/tls/server.crt
+              ServerTLSCert: crypto-config/ordererOrganizations/results.com/orderers/orderer5.results.com/tls/server.crt
+
+ 
+    Organizations:
+    Policies:
+        Readers:
+            Type: ImplicitMeta
+            Rule: "ANY Readers"
+        Writers:
+            Type: ImplicitMeta
+            Rule: "ANY Writers"
+        Admins:
+            Type: ImplicitMeta
+            Rule: "MAJORITY Admins"
+        BlockValidation:
+            Type: ImplicitMeta
+            Rule: "ANY Writers"
+
+
+################################################################################
+
+
+Channel: &ChannelDefaults
+
+    Policies:
+        # deliver
+        Readers:
+            Type: ImplicitMeta
+            Rule: "ANY Readers"
+        # broadcast
+        Writers:
+            Type: ImplicitMeta
+            Rule: "ANY Writers"
+        # modify
+        Admins:
+            Type: ImplicitMeta
+            Rule: "MAJORITY Admins"
+
+    Capabilities:
+        <<: *ChannelCapabilities
+
+
+####################################################################################
+
+
+Profiles:
+
+    TwoOrgsOrdererGenesis:
+        <<: *ChannelDefaults
+        Orderer:
+            <<: *OrdererDefaults
+            Organizations:
+                - *OrdererOrg
+            Capabilities:
+                <<: *OrdererCapabilities
+        Consortiums:
+            SampleConsortium:
+                Organizations:
+                    - *Univ1
+                    - *Univ2
+    TwoOrgsChannel:
+        Consortium: SampleConsortium
+        <<: *ChannelDefaults
+        Application:
+            <<: *ApplicationDefaults
+            Organizations:
+                - *Univ1
+                - *Univ2
+            Capabilities:
+                <<: *ApplicationCapabilities
+
+
+    SampleMultiNodeEtcdRaft:
+        <<: *ChannelDefaults
+        Capabilities:
+            <<: *ChannelCapabilities
+        Orderer:
+            <<: *OrdererDefaults
+            OrdererType: etcdraft
+            EtcdRaft:
+                Consenters:
+                - Host: orderer.results.com
+                  Port: 7050
+                  ClientTLSCert: crypto-config/ordererOrganizations/results.com/orderers/orderer.results.com/tls/server.crt
+                  ServerTLSCert: crypto-config/ordererOrganizations/results.com/orderers/orderer.results.com/tls/server.crt
+                - Host: orderer2.results.com
+                  Port: 7050
+                  ClientTLSCert: crypto-config/ordererOrganizations/results.com/orderers/orderer2.results.com/tls/server.crt
+                  ServerTLSCert: crypto-config/ordererOrganizations/results.com/orderers/orderer2.results.com/tls/server.crt
+                - Host: orderer3.results.com
+                  Port: 7050
+                  ClientTLSCert: crypto-config/ordererOrganizations/results.com/orderers/orderer3.results.com/tls/server.crt
+                  ServerTLSCert: crypto-config/ordererOrganizations/results.com/orderers/orderer3.results.com/tls/server.crt
+                - Host: orderer4.results.com
+                  Port: 7050
+                  ClientTLSCert: crypto-config/ordererOrganizations/results.com/orderers/orderer4.results.com/tls/server.crt
+                  ServerTLSCert: crypto-config/ordererOrganizations/results.com/orderers/orderer4.results.com/tls/server.crt
+                - Host: orderer5.results.com
+                  Port: 7050
+                  ClientTLSCert: crypto-config/ordererOrganizations/results.com/orderers/orderer5.results.com/tls/server.crt
+                  ServerTLSCert: crypto-config/ordererOrganizations/results.com/orderers/orderer5.results.com/tls/server.crt
+            Addresses:
+                - orderer.results.com:7050
+                - orderer2.results.com:7050
+                - orderer3.results.com:7050
+                - orderer4.results.com:7050
+                - orderer5.results.com:7050
+
+            Organizations:
+            - *OrdererOrg
+            Capabilities:
+                <<: *OrdererCapabilities
+        Application:
+            <<: *ApplicationDefaults
+            Organizations:
+            - <<: *OrdererOrg
+        Consortiums:
+            SampleConsortium:
+                Organizations:
+                - *Univ1
+                - *Univ2
